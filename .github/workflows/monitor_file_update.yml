@@ -1,71 +1,91 @@
-name: Check and Update File from Gitee
-
+name: TVBox File Updater
 on:
   schedule:
-    # 北京时间每天8点运行（UTC 0点）
-    - cron: '0 0 * * *'
-  workflow_dispatch: # 允许手动触发
+    - cron: '0 */6 * * *'  # 每6小时检查一次更新
+  workflow_dispatch:        # 允许手动触发
 
 jobs:
-  check-and-update:
+  update-tvbox-files:
     runs-on: ubuntu-latest
     
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-      
-    - name: Set Beijing Timezone
+      with:
+        fetch-depth: 0
+    
+    - name: Check for updates
+      id: check-update
       run: |
-        sudo timedatectl set-timezone Asia/Shanghai
-        echo "CURRENT TIME: $(date '+%Y-%m-%d %H:%M:%S')" >> update.log
+        API_URL="https://gitee.com/api/v5/repos/PizazzXS/another-d/contents/%E5%8D%95%E7%BA%BF%E8%B7%AF.zip"
         
-    - name: Get current SHA
-      id: get_sha
-      run: |
-        if [ -f "单线路.zip" ]; then
-          sha=$(sha1sum 单线路.zip | awk '{print $1}')
-          echo "current_sha=$sha" >> $GITHUB_OUTPUT
-          echo "Local file SHA: $sha" >> update.log
-        else
-          echo "current_sha=" >> $GITHUB_OUTPUT
-          echo "No local file found" >> update.log
+        # 获取文件信息
+        file_info=$(curl -s "$API_URL")
+        download_url=$(echo "$file_info" | jq -r '.download_url')
+        updated_at_utc=$(echo "$file_info" | jq -r '.updated_at')
+        
+        # 转换为北京时间 (UTC+8)
+        updated_at_bj=$(date -d "$updated_at_utc +8 hours" "+%Y-%m-%d %H:%M:%S")
+        
+        # 检查API响应
+        if [ -z "$updated_at_utc" ] || [ "$updated_at_utc" = "null" ]; then
+          echo "::error::无法获取文件信息"
+          exit 1
         fi
         
-    - name: Fetch file info from Gitee
-      id: file_info
-      run: |
-        response=$(curl -s "https://gitee.com/api/v5/repos/PizazzXS/another-d/contents/%E5%8D%95%E7%BA%BF%E8%B7%AF.zip")
-        sha=$(echo $response | jq -r '.sha')
-        download_url=$(echo $response | jq -r '.download_url')
-        echo "remote_sha=$sha" >> $GITHUB_OUTPUT
-        echo "download_url=$download_url" >> $GITHUB_OUTPUT
-        echo "Remote file SHA: $sha" >> update.log
+        # 检查当前版本（使用仓库内的版本文件）
+        current_time=""
+        if [ -f "update_time.txt" ]; then
+          current_time=$(cat "update_time.txt")
+        fi
         
-    - name: Download if changed
-      if: steps.get_sha.outputs.current_sha != steps.file_info.outputs.remote_sha
-      run: |
-        echo "Downloading new version at $(date '+%Y-%m-%d %H:%M:%S')..." >> update.log
-        curl -L -o 单线路.zip "${{ steps.file_info.outputs.download_url }}"
-        # 删除可能存在的旧解压文件（根据你的实际情况调整）
-        rm -rf 解压后的目录/ || true
+        # 输出时间信息
+        echo "当前版本时间: ${current_time:-无记录}"
+        echo "最新更新时间 (北京时间): $updated_at_bj"
         
-    - name: Unzip with overwrite
-      if: steps.get_sha.outputs.current_sha != steps.file_info.outputs.remote_sha && success()
+        # 设置输出变量
+        if [ "$current_time" != "$updated_at_bj" ]; then
+          echo "::notice::检测到新版本可用"
+          echo "download_url=$download_url" >> $GITHUB_OUTPUT
+          echo "updated_at_bj=$updated_at_bj" >> $GITHUB_OUTPUT
+          echo "update_available=true" >> $GITHUB_OUTPUT
+        else
+          echo "::notice::当前已是最新版本"
+          echo "update_available=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Download and replace files
+      if: steps.check-update.outputs.update_available == 'true'
       run: |
-        echo "Unzipping with overwrite at $(date '+%Y-%m-%d %H:%M:%S')..." >> update.log
-        unzip -o 单线路.zip -d ./  # -o 表示覆盖已存在文件
+        echo "正在下载更新..."
+        curl -L -o "tvbox_update.zip" "${{ steps.check-update.outputs.download_url }}"
         
+        # 检查文件有效性
+        if [ ! -s "tvbox_update.zip" ]; then
+          echo "::error::下载的文件为空！"
+          exit 1
+        fi
+        
+        echo "正在解压并替换文件..."
+        # 强制解压覆盖所有现有文件
+        unzip -o "tvbox_update.zip" -d .
+        
+        # 清理临时ZIP文件
+        rm -f "tvbox_update.zip"
+        
+        # 更新版本记录
+        echo "${{ steps.check-update.outputs.updated_at_bj}}" > "update_time.txt"
+        
+        echo "::notice::文件更新完成！所有文件已替换"
+
     - name: Commit changes
-      if: steps.get_sha.outputs.current_sha != steps.file_info.outputs.remote_sha && success()
+      if: steps.check-update.outputs.update_available == 'true'
       run: |
-        git config --global user.name "GitHub Actions"
-        git config --global user.email "actions@github.com"
-        git add .
-        git commit -m "自动更新: 单线路.zip [$(date '+%Y-%m-%d %H:%M:%S')]"
-        git push
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
         
-    - name: Upload log
-      uses: actions/upload-artifact@v3
-      with:
-        name: update-log
-        path: update.log
+        # 添加所有更改（包括删除和修改）
+        git add -A
+        
+        git commit -m "自动更新TVBox文件 (${{ steps.check-update.outputs.updated_at_bj}})"
+        git push
