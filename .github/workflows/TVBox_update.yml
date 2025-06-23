@@ -56,7 +56,7 @@ jobs:
       if: steps.check-update.outputs.update_available == 'true'
       run: |
         # 强制覆盖下载zip文件
-        echo "正在下载更新并覆盖旧zip..."
+        echo "正在下载更新..."
         curl -L -o "xs.zip" "${{ steps.check-update.outputs.download_url }}"
         
         # 检查文件有效性
@@ -77,8 +77,11 @@ jobs:
     - name: Commit changes
       if: steps.check-update.outputs.update_available == 'true'
       run: |
+        # 显式添加所有更改文件（包括zip文件）
         git config user.name "GitHub Actions"
         git config user.email "actions@github.com"
-        git add .
+        git add xs.zip          # 显式添加zip文件
+        git add .               # 添加其他所有文件
+        git status              # 显示状态以确认包含zip文件
         git commit -m "自动更新TVBox文件 (${{ steps.check-update.outputs.new_sha }})"
         git push
