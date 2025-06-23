@@ -12,75 +12,80 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0  # 获取完整历史记录，便于提交
+        fetch-depth: 0
     
     - name: Check for updates
       id: check-update
       run: |
-        # 简化变量定义
         API_URL="https://gitee.com/api/v5/repos/PizazzXS/another-d/contents/%E5%8D%95%E7%BA%BF%E8%B7%AF.zip"
         
-        # 获取最新文件信息
+        # 获取文件信息
         file_info=$(curl -s "$API_URL")
-        new_sha=$(echo "$file_info" | jq -r '.sha')
         download_url=$(echo "$file_info" | jq -r '.download_url')
+        updated_at_utc=$(echo "$file_info" | jq -r '.updated_at')
+        
+        # 转换为北京时间 (UTC+8)
+        updated_at_bj=$(date -d "$updated_at_utc +8 hours" "+%Y-%m-%d %H:%M:%S")
         
         # 检查API响应
-        if [ -z "$new_sha" ] || [ "$new_sha" = "null" ]; then
+        if [ -z "$updated_at_utc" ] || [ "$updated_at_utc" = "null" ]; then
           echo "::error::无法获取文件信息"
           exit 1
         fi
         
         # 检查当前版本（使用仓库内的版本文件）
-        current_sha=""
-        if [ -f "xs_version.txt" ]; then
-          current_sha=$(cat "xs_version.txt")
+        current_time=""
+        if [ -f "update_time.txt" ]; then
+          current_time=$(cat "update_time.txt")
         fi
         
-        # 输出简洁的版本信息
-        echo "当前版本: ${current_sha:0:7}... (完整SHA: $current_sha)"
-        echo "最新版本: ${new_sha:0:7}... (完整SHA: $new_sha)"
+        # 输出时间信息
+        echo "当前版本时间: ${current_time:-无记录}"
+        echo "最新更新时间 (北京时间): $updated_at_bj"
         
         # 设置输出变量
-        if [ "$current_sha" != "$new_sha" ]; then
+        if [ "$current_time" != "$updated_at_bj" ]; then
           echo "::notice::检测到新版本可用"
           echo "download_url=$download_url" >> $GITHUB_OUTPUT
-          echo "new_sha=$new_sha" >> $GITHUB_OUTPUT
+          echo "updated_at_bj=$updated_at_bj" >> $GITHUB_OUTPUT
           echo "update_available=true" >> $GITHUB_OUTPUT
         else
           echo "::notice::当前已是最新版本"
           echo "update_available=false" >> $GITHUB_OUTPUT
         fi
 
-    - name: Download and extract update
+    - name: Download and replace files
       if: steps.check-update.outputs.update_available == 'true'
       run: |
-        # 简洁的下载和解压命令
         echo "正在下载更新..."
-        curl -L -o "xs.zip" "${{ steps.check-update.outputs.download_url }}"
+        curl -L -o "tvbox_update.zip" "${{ steps.check-update.outputs.download_url }}"
         
         # 检查文件有效性
-        if [ ! -s "xs.zip" ]; then
+        if [ ! -s "tvbox_update.zip" ]; then
           echo "::error::下载的文件为空！"
           exit 1
         fi
         
-        echo "正在解压文件..."
-        unzip -o "xs.zip" -d .
+        echo "正在解压并替换文件..."
+        # 强制解压覆盖所有现有文件
+        unzip -o "tvbox_update.zip" -d .
+        
+        # 清理临时ZIP文件
+        rm -f "tvbox_update.zip"
         
         # 更新版本记录
-        echo "${{ steps.check-update.outputs.new_sha }}" > "xs_version.txt"
+        echo "${{ steps.check-update.outputs.updated_at_bj}}" > "update_time.txt"
         
-        # 清理临时文件
-        rm -f "xs.zip"
-        
-        echo "::notice::更新完成！文件已解压到根目录"
+        echo "::notice::文件更新完成！所有文件已替换"
 
     - name: Commit changes
       if: steps.check-update.outputs.update_available == 'true'
       run: |
         git config user.name "GitHub Actions"
         git config user.email "actions@github.com"
-        git add .
-        git commit -m "自动更新TVBox文件 (${{ steps.check-update.outputs.new_sha }})"
+        
+        # 添加所有更改（包括删除和修改）
+        git add -A
+        
+        git commit -m "自动更新TVBox文件 (${{ steps.check-update.outputs.updated_at_bj}})"
         git push
