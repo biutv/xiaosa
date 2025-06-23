@@ -22,11 +22,12 @@ jobs:
         
         # 获取最新文件信息
         file_info=$(curl -s "$API_URL")
+        file_name=$(echo "$file_info" | jq -r '.name')
         new_sha=$(echo "$file_info" | jq -r '.sha')
         download_url=$(echo "$file_info" | jq -r '.download_url')
         
         # 检查API响应
-        if [ -z "$new_sha" ] || [ "$new_sha" = "null" ]; then
+        if [ -z "$new_sha" ] || [ "$new_sha" = "null" ] || [ -z "$file_name" ] || [ "$file_name" = "null" ]; then
           echo "::error::无法获取文件信息"
           exit 1
         fi
@@ -40,11 +41,13 @@ jobs:
         # 输出简洁的版本信息
         echo "当前版本: ${current_sha:0:7}... (完整SHA: $current_sha)"
         echo "最新版本: ${new_sha:0:7}... (完整SHA: $new_sha)"
+        echo "原始文件名: $file_name"
         
         # 设置输出变量
         if [ "$current_sha" != "$new_sha" ]; then
           echo "::notice::检测到新版本可用"
           echo "download_url=$download_url" >> $GITHUB_OUTPUT
+          echo "file_name=$file_name" >> $GITHUB_OUTPUT
           echo "new_sha=$new_sha" >> $GITHUB_OUTPUT
           echo "update_available=true" >> $GITHUB_OUTPUT
         else
@@ -55,33 +58,34 @@ jobs:
     - name: Download and extract update
       if: steps.check-update.outputs.update_available == 'true'
       run: |
-        # 强制覆盖下载zip文件
-        echo "正在下载更新..."
-        curl -L -o "xs.zip" "${{ steps.check-update.outputs.download_url }}"
+        # 获取原始文件名
+        original_file="${{ steps.check-update.outputs.file_name }}"
+        
+        # 使用原始文件名下载
+        echo "正在下载更新: $original_file..."
+        curl -L -o "$original_file" "${{ steps.check-update.outputs.download_url }}"
         
         # 检查文件有效性
-        if [ ! -s "xs.zip" ]; then
+        if [ ! -s "$original_file" ]; then
           echo "::error::下载的文件为空！"
           exit 1
         fi
         
         # 强制解压并覆盖所有文件
         echo "正在强制解压覆盖文件..."
-        unzip -o -q "xs.zip" -d .  # -o 覆盖不提示 -q 静默模式
+        unzip -o -q "$original_file" -d .  # -o 覆盖不提示 -q 静默模式
         
         # 更新版本记录
         echo "${{ steps.check-update.outputs.new_sha }}" > "xs_version.txt"
         
-        echo "::notice::更新完成！文件已强制覆盖，xs.zip已保留"
+        echo "::notice::更新完成！文件已强制覆盖，$original_file 已保留"
 
     - name: Commit changes
       if: steps.check-update.outputs.update_available == 'true'
       run: |
-        # 显式添加所有更改文件（包括zip文件）
+        # 显式添加所有更改文件
         git config user.name "GitHub Actions"
         git config user.email "actions@github.com"
-        git add xs.zip          # 显式添加zip文件
-        git add .               # 添加其他所有文件
-        git status              # 显示状态以确认包含zip文件
+        git add .
         git commit -m "自动更新TVBox文件 (${{ steps.check-update.outputs.new_sha }})"
         git push
