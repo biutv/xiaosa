@@ -1,62 +1,99 @@
-name: Download and Update Files
-
+name: TVBox File Updater
 on:
-  workflow_dispatch:
   schedule:
-    - cron: '0 * * * *'  # 每小时运行一次（更标准的cron语法）
+    - cron: '0 */6 * * *'  # 每6小时检查一次更新
+  workflow_dispatch:        # 允许手动触发
 
 jobs:
-  download-and-update:
+  update-tvbox-files:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      
+    
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup environment
+      run: |
+        sudo mkdir -p /etc/xiaoya
+        sudo chown -R $USER:$USER /etc/xiaoya
+        
+    - name: Check for updates
+      id: check-update
+      run: |
+        WORK_DIR="/etc/xiaoya"
+        VERSION_FILE="$WORK_DIR/xs_version.txt"
+        API_URL="https://gitee.com/api/v5/repos/PizazzXS/another-d/contents/%E5%8D%95%E7%BA%BF%E8%B7%AF.zip"
+        
+        # 获取最新文件信息
+        file_info=$(curl -s "$API_URL")
+        new_sha=$(echo "$file_info" | jq -r '.sha')
+        download_url=$(echo "$file_info" | jq -r '.download_url')
+        
+        # 检查API响应
+        if [ -z "$new_sha" ] || [ "$new_sha" = "null" ]; then
+          echo "::error::无法获取文件信息"
+          exit 1
+        fi
+        
+        # 检查当前版本
+        current_sha=""
+        if [ -f "$VERSION_FILE" ]; then
+          current_sha=$(cat "$VERSION_FILE")
+        fi
+        
+        # 输出比较结果
+        echo "当前版本: $current_sha"
+        echo "最新版本: $new_sha"
+        
+        # 设置输出变量
+        if [ "$current_sha" != "$new_sha" ]; then
+          echo "::notice::检测到新版本可用"
+          echo "download_url=$download_url" >> $GITHUB_OUTPUT
+          echo "new_sha=$new_sha" >> $GITHUB_OUTPUT
+          echo "update_available=true" >> $GITHUB_OUTPUT
+        else
+          echo "::notice::当前已是最新版本"
+          echo "update_available=false" >> $GITHUB_OUTPUT
+        fi
 
-      - name: Download file from Gitee
-        run: |
-          # 创建临时目录
-          mkdir -p temp_download
-          cd temp_download
-          
-          echo "开始从Gitee下载文件..."
-          # 使用Gitee API获取下载链接（需要处理JSON响应）
-          download_url=$(curl -s "https://gitee.com/api/v5/repos/PizazzXS/another-d/contents/单线路.zip" | grep -oP '"download_url": "\K[^"]+')
-          
-          if [ -z "$download_url" ]; then
-            echo "错误：无法从API获取下载链接"
-            exit 1
-          fi
-          
-          echo "获取到下载链接: $download_url"
-          curl -L -o "single_line.zip" "$download_url"
-          
-          if [ -f "single_line.zip" ]; then
-            echo "文件下载成功，开始解压..."
-            unzip -o single_line.zip -d ../
-            echo "文件解压完成"
-          else
-            echo "文件下载失败"
-            exit 1
-          fi
-          
-          # 清理临时文件
-          cd ..
-          rm -rf temp_download
+    - name: Download and extract update
+      if: steps.check-update.outputs.update_available == 'true'
+      run: |
+        WORK_DIR="/etc/xiaoya"
+        VERSION_FILE="$WORK_DIR/xs_version.txt"
+        ZIP_FILE="xs.zip"
+        
+        # 从步骤获取下载链接
+        download_url="${{ steps.check-update.outputs.download_url }}"
+        new_sha="${{ steps.check-update.outputs.new_sha }}"
+        
+        # 下载文件到根目录
+        echo "正在下载更新..."
+        curl -L -o "$ZIP_FILE" "$download_url"
+        
+        # 检查文件是否有效
+        if [ ! -s "$ZIP_FILE" ]; then
+          echo "::error::下载的文件为空！"
+          exit 1
+        fi
+        
+        # 解压到根目录（覆盖现有文件）
+        echo "正在解压文件..."
+        unzip -o "$ZIP_FILE" -d .
+        
+        # 更新版本记录
+        echo "$new_sha" > "$VERSION_FILE"
+        
+        # 清理临时文件
+        rm -f "$ZIP_FILE"
+        
+        echo "::notice::更新完成！文件已解压到根目录"
 
-      - name: Check and commit changes
-        run: |
-          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          
-          if [[ -n "$(git status --porcelain)" ]]; then
-            echo "检测到文件变更，提交更新..."
-            git add .
-            git commit -m "Update: 更新单线路文件 $(date '+%Y-%m-%d %H:%M:%S')"
-            git push
-            echo "更新已推送到仓库"
-          else
-            echo "没有检测到文件变更"
-          fi
+    - name: Commit changes
+      if: steps.check-update.outputs.update_available == 'true'
+      run: |
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+        git add .
+        git commit -m "自动更新TVBox文件 (${{ steps.check-update.outputs.new_sha }})"
+        git push
