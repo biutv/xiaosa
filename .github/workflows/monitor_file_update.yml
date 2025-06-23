@@ -11,17 +11,13 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-      
-    - name: Setup environment
-      run: |
-        sudo mkdir -p /etc/xiaoya
-        sudo chown -R $USER:$USER /etc/xiaoya
-        
+      with:
+        fetch-depth: 0  # 获取完整历史记录，便于提交
+    
     - name: Check for updates
       id: check-update
       run: |
-        WORK_DIR="/etc/xiaoya"
-        VERSION_FILE="$WORK_DIR/xs_version.txt"
+        # 简化变量定义
         API_URL="https://gitee.com/api/v5/repos/PizazzXS/another-d/contents/%E5%8D%95%E7%BA%BF%E8%B7%AF.zip"
         
         # 获取最新文件信息
@@ -35,15 +31,15 @@ jobs:
           exit 1
         fi
         
-        # 检查当前版本
+        # 检查当前版本（使用仓库内的版本文件）
         current_sha=""
-        if [ -f "$VERSION_FILE" ]; then
-          current_sha=$(cat "$VERSION_FILE")
+        if [ -f "xs_version.txt" ]; then
+          current_sha=$(cat "xs_version.txt")
         fi
         
-        # 输出比较结果
-        echo "当前版本: $current_sha"
-        echo "最新版本: $new_sha"
+        # 输出简洁的版本信息
+        echo "当前版本: ${current_sha:0:7}... (完整SHA: $current_sha)"
+        echo "最新版本: ${new_sha:0:7}... (完整SHA: $new_sha)"
         
         # 设置输出变量
         if [ "$current_sha" != "$new_sha" ]; then
@@ -59,33 +55,24 @@ jobs:
     - name: Download and extract update
       if: steps.check-update.outputs.update_available == 'true'
       run: |
-        WORK_DIR="/etc/xiaoya"
-        VERSION_FILE="$WORK_DIR/xs_version.txt"
-        ZIP_FILE="xs.zip"
-        
-        # 从步骤获取下载链接
-        download_url="${{ steps.check-update.outputs.download_url }}"
-        new_sha="${{ steps.check-update.outputs.new_sha }}"
-        
-        # 下载文件到根目录
+        # 简洁的下载和解压命令
         echo "正在下载更新..."
-        curl -L -o "$ZIP_FILE" "$download_url"
+        curl -L -o "xs.zip" "${{ steps.check-update.outputs.download_url }}"
         
-        # 检查文件是否有效
-        if [ ! -s "$ZIP_FILE" ]; then
+        # 检查文件有效性
+        if [ ! -s "xs.zip" ]; then
           echo "::error::下载的文件为空！"
           exit 1
         fi
         
-        # 解压到根目录（覆盖现有文件）
         echo "正在解压文件..."
-        unzip -o "$ZIP_FILE" -d .
+        unzip -o "xs.zip" -d .
         
         # 更新版本记录
-        echo "$new_sha" > "$VERSION_FILE"
+        echo "${{ steps.check-update.outputs.new_sha }}" > "xs_version.txt"
         
         # 清理临时文件
-        rm -f "$ZIP_FILE"
+        rm -f "xs.zip"
         
         echo "::notice::更新完成！文件已解压到根目录"
 
