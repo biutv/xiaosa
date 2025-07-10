@@ -229,6 +229,21 @@
             }
         },
         {
+            "key": "鲸鱼",
+            "name": "鲸鱼｜APP",
+            "type": 3,
+            "quickSearch": 1,
+            "api": "csp_AppGet2",
+            "ext": {
+                "url": "",
+                "site": "https://jingyu4k-1312635929.cos.ap-nanjing.myqcloud.com/1.json",
+                "dataKey": "AAdgrdghjfgswerA",
+                "dataIv": "AAdgrdghjfgswerA",
+                "deviceId": "",
+                "version": ""
+            }
+        },
+        {
             "key": "鲶鱼",
             "name": "鲶鱼｜APP",
             "type": 3,
@@ -640,6 +655,17 @@
             "name": "三六零｜视频",
             "type": 3,
             "api": "csp_SP360"
+        },
+        {
+            "key": "小斑快映",
+            "name": "小斑快映｜4K弹幕",
+            "type": 3,
+            "api": "csp_PanWebShare",
+            "searchable": 1,
+            "quickSearch": 1,
+            "filterable": 1,
+            "changeable": 1,
+            "ext": "./json/xbky.json"
         },
         {
             "key": "玩偶哥哥",
