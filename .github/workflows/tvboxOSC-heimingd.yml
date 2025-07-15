@@ -1,0 +1,146 @@
+name: TVBox Updater and FTP Deployer
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  update-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    # 步骤1: 检出仓库
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    # 步骤2: 检查更新
+    - name: Check for updates
+      id: check-update
+      run: |
+        # 简化变量定义
+        API_URL="https://gitee.com/api/v5/repos/PizazzXS/another-d/contents/%E5%8D%95%E7%BA%BF%E8%B7%AF.zip"
+        
+        # 获取最新文件信息
+        file_info=$(curl -s "$API_URL")
+        file_name=$(echo "$file_info" | jq -r '.name')
+        new_sha=$(echo "$file_info" | jq -r '.sha')
+        download_url=$(echo "$file_info" | jq -r '.download_url')
+        
+        # 检查API响应
+        if [ -z "$new_sha" ] || [ "$new_sha" = "null" ] || [ -z "$file_name" ] || [ "$file_name" = "null" ]; then
+          echo "::error::无法获取文件信息"
+          exit 1
+        fi
+        
+        # 检查当前版本（使用仓库内的版本文件）
+        current_sha=""
+        if [ -f "xs_version.txt" ]; then
+          current_sha=$(cat "xs_version.txt")
+        fi
+        
+        # 输出简洁的版本信息
+        echo "当前版本: ${current_sha:0:7}... (完整SHA: $current_sha)"
+        echo "最新版本: ${new_sha:0:7}... (完整SHA: $new_sha)"
+        echo "原始文件名: $file_name"
+        
+        # 设置输出变量
+        if [ "$current_sha" != "$new_sha" ]; then
+          echo "::notice::检测到新版本可用"
+          echo "download_url=$download_url" >> $GITHUB_OUTPUT
+          echo "file_name=$file_name" >> $GITHUB_OUTPUT
+          echo "new_sha=$new_sha" >> $GITHUB_OUTPUT
+          echo "update_available=true" >> $GITHUB_OUTPUT
+        else
+          echo "::notice::当前已是最新版本"
+          echo "update_available=false" >> $GITHUB_OUTPUT
+        fi
+
+    # 步骤3: 下载并解压更新（如果有更新）
+    - name: Download and extract update
+      if: steps.check-update.outputs.update_available == 'true'
+      run: |
+        # 获取原始文件名
+        original_file="${{ steps.check-update.outputs.file_name }}"
+        
+        # 使用原始文件名下载
+        echo "正在下载更新: $original_file..."
+        curl -L -o "$original_file" "${{ steps.check-update.outputs.download_url }}"
+        
+        # 检查文件有效性
+        if [ ! -s "$original_file" ]; then
+          echo "::error::下载的文件为空！"
+          exit 1
+        fi
+        
+        # 强制解压并覆盖所有文件
+        echo "正在强制解压覆盖文件..."
+        unzip -o -q "$original_file" -d .  # -o 覆盖不提示 -q 静默模式
+        
+        # 更新版本记录
+        echo "${{ steps.check-update.outputs.new_sha }}" > "xs_version.txt"
+        
+        echo "::notice::更新完成！文件已强制覆盖，$original_file 已保留"
+
+    # 修复的黑名单处理步骤
+    - name: Process blacklist
+      if: steps.check-update.outputs.update_available == 'true'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y jq
+        
+        # 定义黑名单数组
+        blacklist=(
+          "csp_XiaoYa" "csp_AList" "csp_Live" "csp_TgDouBan" "csp_TgSearch" 
+          "预告" "本地" "配置中心" "玩偶哥哥" "木偶" "蜡笔" "至臻" "多多" "欧哥" 
+          "二小" "大玩" "虎斑" "闪电" "奥秘" "团长" "雷鲸" "海绵" "夸父" "趣盘" 
+          "盘库" "双星" "懒盘" "百酷" "校长" "天堂" "人人电影网" "爱搜" "糖果" 
+          "聚搜" "米搜" "人人分享站" "全盘" "夸克盘搜" "哆啦新番社" "56动漫" 
+          "NT动漫" "Anime1" "曼波动漫" "稀饭动漫" "咕咕动漫" "米饭动漫" "次元动漫" 
+          "派对动漫" "丫丫" "黑猫动漫" "樱花动漫" "巴士动漫" "好看动漫" "奇米动漫" 
+          "怡萱动漫" "花子动漫" "动画片" "路漫漫" "动漫岛" "去看吧" "爱弹幕" 
+          "异世界" "阿里云盘" "夸克云盘" "UC" "百度云盘" "短剧合集" "短剧大全" 
+          "AList" "网络直播" "88看球" "哔哩合集" "哔哩哔哩演唱会" "哔哩哔哩听书" 
+          "哔哩哔哩相声" "哔哩哔哩小品" "哔哩哔哩戏曲" "少儿教育" "小学课堂" 
+          "初中课堂" "高中教育" "急救教学" "养生堂" "版本信息"
+        )
+        
+        # 进入目标目录
+        cd TVBoxOSC/tvbox
+        
+        # 复制文件
+        cp api.json a.json
+        
+        # 将黑名单数组转换为JSON格式
+        blacklist_json=$(printf '%s\n' "${blacklist[@]}" | jq -R . | jq -s .)
+        
+        echo "正在处理黑名单..."
+        # 修复的jq命令 - 正确的括号匹配
+        jq --argjson blacklist "$blacklist_json" '
+          if .sites then 
+            .sites = (.sites | map(select(
+              (.key as $key | $blacklist | index($key) | not) and
+              (.name as $name | $blacklist | index($name) | not)
+            )))
+            | .sites |= if length > 0 then . else [] end
+          else . end
+        ' a.json > temp.json
+        
+        mv temp.json a.json
+        echo "黑名单处理完成，已创建 a.json 文件"
+
+    # 步骤4: 提交变更（如果有更新）
+    - name: Commit changes
+      if: steps.check-update.outputs.update_available == 'true'
+      run: |
+        # 显式添加所有更改文件
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+        git add .
+        git commit -m "自动更新TVBox文件 (${{ steps.check-update.outputs.new_sha }})"
+        git push
+    
+  
