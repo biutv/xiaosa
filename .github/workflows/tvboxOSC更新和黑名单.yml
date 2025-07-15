@@ -1,4 +1,4 @@
-name: TVBox Updater and FTP Deployer
+name: TVBox Updater Deployer
 
 on:
   schedule:
