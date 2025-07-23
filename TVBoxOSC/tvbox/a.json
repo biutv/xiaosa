@@ -75,14 +75,14 @@
       "name": "咖啡｜APP",
       "type": 3,
       "quickSearch": 1,
-      "api": "csp_AppGet2",
+      "api": "csp_AppGet",
       "ext": {
         "url": "",
-        "site": "https://omofun.lol/coffee.txt",
-        "dataKey": "qwertyuiopqwertm",
-        "dataIv": "qwertyuiopqwertm",
+        "site": "https://omofun.lol/1.txt",
+        "dataKey": "skdhalkshqklwkj1",
+        "dataIv": "skdhalkshqklwkj1",
         "deviceId": "",
-        "version": "",
+        "version": "109",
         "ua": "okhttp/3.10.0"
       }
     },
@@ -1115,6 +1115,12 @@
       "searchable": 1,
       "quickSearch": 1,
       "filterable": 1
+    },
+    {
+      "key": "哔哩直播",
+      "name": "哔哩｜直播",
+      "type": 3,
+      "api": "./py/哔哩直播.py"
     },
     {
       "key": "push_agent",
