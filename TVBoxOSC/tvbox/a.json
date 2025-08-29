@@ -779,42 +779,42 @@
       "key": "明星影视",
       "name": "明星｜影视",
       "type": 3,
-      "api": "csp_HBPQ",
+      "api": "csp_XBPQ",
       "ext": "./XBPQ/明星影视.json"
     },
     {
       "key": "麦田影视",
       "name": "麦田｜影视",
       "type": 3,
-      "api": "csp_HBPQ",
+      "api": "csp_XBPQ",
       "ext": "./XBPQ/麦田影视.json"
     },
     {
       "key": "面包影视",
       "name": "面包｜影视",
       "type": 3,
-      "api": "csp_HBPQ",
+      "api": "csp_XBPQ",
       "ext": "./XBPQ/面包影视.json"
     },
     {
       "key": "永乐影视",
       "name": "永乐｜影视",
       "type": 3,
-      "api": "csp_HBPQ",
+      "api": "csp_XBPQ",
       "ext": "./XBPQ/永乐影视.json"
     },
     {
       "key": "雪糕影视",
       "name": "雪糕｜影视",
       "type": 3,
-      "api": "csp_HBPQ",
+      "api": "csp_XBPQ",
       "ext": "./XBPQ/雪糕影视.json"
     },
     {
       "key": "三九影视",
       "name": "三九｜影视",
       "type": 3,
-      "api": "csp_HBPQ",
+      "api": "csp_XBPQ",
       "ext": "./XBPQ/三九影视.json"
     },
     {
@@ -894,7 +894,7 @@
       "key": "修罗影视",
       "name": "修罗｜磁力",
       "type": 3,
-      "api": "csp_HBPQ",
+      "api": "csp_XBPQ",
       "searchable": 1,
       "quickSearch": 1,
       "filterable": 1,
@@ -964,7 +964,7 @@
       "key": "狐狸君",
       "name": "狐狸君｜磁力",
       "type": 3,
-      "api": "csp_HBPQ",
+      "api": "csp_XBPQ",
       "changeable": 1,
       "searchable": 1,
       "quickSearch": 1,
