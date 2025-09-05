@@ -600,6 +600,18 @@
       "filterable": 1
     },
     {
+      "key": "派派",
+      "name": "派派｜搜索",
+      "type": 3,
+      "api": "csp_PPQPan"
+    },
+    {
+      "key": "短剧鬼鬼",
+      "name": "短剧｜鬼鬼",
+      "type": 3,
+      "api": "csp_DuanjuGG"
+    },
+    {
       "key": "星芽短剧",
       "name": "星芽｜短剧",
       "type": 3,
