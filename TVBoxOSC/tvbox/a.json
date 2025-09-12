@@ -599,32 +599,6 @@
       "ext": "./json/xbky.json"
     },
     {
-      "key": "百家",
-      "name": "百家｜4K",
-      "type": 3,
-      "api": "csp_PanWebShare",
-      "searchable": 1,
-      "quickSearch": 1,
-      "filterable": 1,
-      "changeable": 1,
-      "ext": "./json/bj.json"
-    },
-    {
-      "key": "123",
-      "name": "123｜4K",
-      "type": 3,
-      "api": "csp_PanWebShareCloud123",
-      "searchable": 1,
-      "quickSearch": 1,
-      "filterable": 1,
-      "changeable": 1,
-      "style": {
-        "type": "list",
-        "ratio": 1.433
-      },
-      "ext": "./json/123.json"
-    },
-    {
       "key": "音海",
       "name": "音海｜搜索",
       "type": 3,
