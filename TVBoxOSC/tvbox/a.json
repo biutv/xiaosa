@@ -713,6 +713,16 @@
       "ext": "./json/xbky.json"
     },
     {
+      "key": "人人",
+      "name": "人人｜4K",
+      "type": 3,
+      "api": "./js/drpy2.min.js",
+      "ext": "./js/人人电影网.js",
+      "style": {
+        "type": "list"
+      }
+    },
+    {
       "key": "UC盘搜",
       "name": "UC｜搜索",
       "type": 3,
@@ -759,12 +769,6 @@
       "ext": {
         "cloudDrives": "baidu"
       }
-    },
-    {
-      "key": "派派",
-      "name": "派派｜搜索",
-      "type": 3,
-      "api": "csp_PPQPan"
     },
     {
       "key": "短剧鬼鬼",
