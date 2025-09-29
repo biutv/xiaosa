@@ -936,13 +936,6 @@
       "ext": "./XBPQ/明星影视.json"
     },
     {
-      "key": "麦田影视",
-      "name": "麦田｜影视",
-      "type": 3,
-      "api": "csp_XBPQ",
-      "ext": "./XBPQ/麦田影视.json"
-    },
-    {
       "key": "面包影视",
       "name": "面包｜影视",
       "type": 3,
@@ -955,13 +948,6 @@
       "type": 3,
       "api": "csp_XBPQ",
       "ext": "./XBPQ/永乐影视.json"
-    },
-    {
-      "key": "雪糕影视",
-      "name": "雪糕｜影视",
-      "type": 3,
-      "api": "csp_XBPQ",
-      "ext": "./XBPQ/雪糕影视.json"
     },
     {
       "key": "三九影视",
@@ -1076,37 +1062,6 @@
         "deviceId": "",
         "version": "",
         "ua": ""
-      }
-    },
-    {
-      "key": "凛冬",
-      "name": "凛冬丨动漫",
-      "type": 3,
-      "quickSearch": 1,
-      "api": "csp_AppGet",
-      "ext": {
-        "url": "http://cydd.xyz",
-        "site": "",
-        "dataKey": "cyddkeyf774b3b39",
-        "dataIv": "cyddkeyf774b3b39",
-        "deviceId": "",
-        "version": "",
-        "ua": ""
-      }
-    },
-    {
-      "key": "多多动漫",
-      "name": "多多｜动漫",
-      "type": 3,
-      "quickSearch": 1,
-      "api": "csp_AppGet",
-      "ext": {
-        "url": "",
-        "site": "https://app.cf4k.xyz/1.txt",
-        "dataKey": "qqqqqqqqqqqqqqqq",
-        "dataIv": "qqqqqqqqqqqqqqqq",
-        "deviceId": "",
-        "version": ""
       }
     },
     {
