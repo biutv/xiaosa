@@ -1098,6 +1098,20 @@
       "filterable": 1
     },
     {
+      "key": "UC云盘",
+      "name": "我的｜UC",
+      "type": 3,
+      "api": "csp_PanUc",
+      "searchable": 0,
+      "filterable": 0,
+      "changeable": 0,
+      "style": {
+        "type": "list",
+        "ratio": 1.433
+      },
+      "ext": "./json/ucShare.json"
+    },
+    {
       "key": "UC盘搜",
       "name": "UC｜搜索",
       "type": 3,
@@ -1162,6 +1176,15 @@
       "name": "鬼鬼｜搜索",
       "type": 3,
       "api": "csp_GuiGui"
+    },
+    {
+      "key": "戏曲多多",
+      "name": "戏曲｜多多",
+      "type": 3,
+      "api": "csp_AppLY",
+      "searchable": 1,
+      "quickSearch": 1,
+      "filterable": 1
     },
     {
       "key": "哔哩直播",
