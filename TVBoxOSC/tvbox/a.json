@@ -768,16 +768,6 @@
       ]
     },
     {
-      "key": "猎手影视",
-      "name": "猎手｜影视",
-      "type": 3,
-      "api": "./py/猎手影视.py",
-      "searchable": 1,
-      "changeable": 1,
-      "quickSearch": 1,
-      "filterable": 1
-    },
-    {
       "key": "厂长影视",
       "name": "厂长｜影视",
       "type": 3,
